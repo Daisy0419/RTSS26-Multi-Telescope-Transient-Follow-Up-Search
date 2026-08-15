@@ -2,7 +2,7 @@
 
 This repository contains the source code, datasets, and precomputed results supporting the paper *"Real-Time Multi-Telescope Scheduling to Search for Transient Astrophysical Phenomena."*
 
-- Source repository: [Multi-Telescope-Followup-Searching](https://github.com/Daisy0419/Multi-Telescope-Followup-Searching.git)
+- Source repository: [RTSS26-Multi-Telescope-Follow-Up-Searching](https://github.com/Daisy0419/RTSS26-Multi-Telescope-Transient-Follow-Up-Search.git)
 
 
 ## Artifact Scope
@@ -116,36 +116,52 @@ These are the paper's execution platforms, not necessarily minimum artifact requ
 
 ## 1. Environment Setup
 
-You can run the artifact via **Docker (recommended)** or a **Local Setup**. A Gurobi license is needed only to run ILP-based experiments.
+You can run the artifact via **Docker (recommended)** or a **local setup**. A Gurobi license is needed only to run ILP-based experiments.
 
-### 1.1 Obtaining a Gurobi License
+### 1.1 Obtaining a Gurobi WLS License
 
-Our algorithms include an ILP implementation of the orienteering problem, which is solved using the commercially-available Gurobi Optimizer.
+Our algorithms include ILP implementations of the orienteering problem, which are solved using Gurobi Optimizer. This artifact documents the **Web License Service (WLS)** configuration for both Docker and local execution.
 
-Gurobi requires a license (`gurobi.lic`) to run the ILP-based methods.
+Gurobi requires a license file named `gurobi.lic` to run the ILP-based methods.
 
-- Refer to: [How to Retrieve and Set Up a Gurobi License](https://support.gurobi.com/hc/en-us/articles/12872879801105)
-- **Note:** Without a Gurobi license, the simulated-annealing and `R-GREEDY` methods can still run. The project nevertheless requires the Gurobi headers and libraries at build time.
+- Refer to [How to Retrieve and Set Up a Gurobi License](https://support.gurobi.com/hc/en-us/articles/12872879801105).
+- Without a valid license, the simulated-annealing and `R-GREEDY` methods can still run. However, the Gurobi headers and libraries are required at build time.
+- WLS requires an Internet connection while Gurobi is in use.
 
-If you are an academic user, Gurobi provides **free academic licenses**:
+Academic users can obtain a free Academic WLS license:
 
 - [Free Academic License](https://www.gurobi.com/academia/academic-program-and-licenses/)
-- **Note:** If you're using an academic license and intend to run the experiments using our provided Docker container, be sure to request an Academic WLS License (floating license). Named-User Academic Licenses are not compatible with Docker containers.
+- [Academic WLS License](https://support.gurobi.com/hc/en-us/articles/13210193318033-What-is-an-Academic-WLS-license)
 
-To obtain an academic license:
+To obtain an Academic WLS license:
 
-1. Navigate to the Gurobi portal. https://portal.gurobi.com/
-2. Login or register to create a free Gurobi account using your academic email address.
-3. Navigate to Gurobi's academic license request page. https://portal.gurobi.com/iam/licenses/request/?type=academic
-4. Under "WLS Academic," click, "Generate Now!"
-5. Download the generated `gurobi.lic` file.
-6. Move or copy the file to the path of your choice. All commands listed hereafter assume it is in `~/gurobi.lic`.
+1. Navigate to the [Gurobi portal](https://portal.gurobi.com/).
+2. Log in or register using your academic email address.
+3. Navigate to the [academic license request page](https://portal.gurobi.com/iam/licenses/request/?type=academic).
+4. Under **WLS Academic**, click **Generate Now**.
+5. Create an API key and download the generated `gurobi.lic` file.
+6. Place the file at `$HOME/gurobi.lic`, which is Gurobi's default user-level location, or keep it in another location and set `GRB_LICENSE_FILE` to its complete path.
+
+The following commands use `$HOME/gurobi.lic` by default:
+
+```bash
+export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
+
+# To use another location instead:
+# export GRB_LICENSE_FILE="/absolute/path/to/gurobi.lic"
+
+chmod 600 "$GRB_LICENSE_FILE"
+```
+
+`GRB_LICENSE_FILE` must identify the license file itself, not only its containing directory.
+
+> **Security note:** A WLS `gurobi.lic` file contains private API credentials. Do not commit it to the repository, include it in the Docker image, or distribute it with the artifact.
 
 ### 1.2 (Option A, Preferred) Using the Provided Docker Container
 
 #### 1.2.1 Install Docker
 
-You may install Docker according to [these instructions](https://docs.docker.com/engine/install/). Here, we include the instructions for Ubuntu distributions:
+You may install Docker according to [these instructions](https://docs.docker.com/engine/install/). Here, we include the instructions for Ubuntu distributions.
 
 1. Set up Docker's `apt` repository:
 
@@ -154,7 +170,8 @@ You may install Docker according to [these instructions](https://docs.docker.com
 sudo apt-get update
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
 # Add the repository to Apt sources:
@@ -166,60 +183,109 @@ echo \
 sudo apt-get update
 ```
 
-2. Install the latest Docker packages.
+2. Install the latest Docker packages:
 
 ```bash
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install \
+  docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
 ```
 
 #### 1.2.2 Pull the Docker Image
 
 ```bash
-sudo docker pull <TODO_RTSS26_CONTAINER_IMAGE:TAG>
+export RTSS_IMAGE="<TODO_RTSS26_CONTAINER_IMAGE:TAG>"
+sudo docker pull "$RTSS_IMAGE"
 ```
 
-All dependencies are pre-installed, and project binaries are precompiled in the image. You can jump to Reproducing Paper Figures or Running Full Experiments.
+All dependencies are preinstalled, and the project binaries are precompiled in the image. You can proceed directly to reproducing the paper figures or rerunning the experiments.
+
+A Gurobi license is not required when only plotting the supplied precomputed results.
+
+#### 1.2.3 Provide the WLS License to the Container
+
+The WLS license remains on the host and is mounted read-only into the container. First, identify its location:
+
+```bash
+export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
+
+# To use another location instead:
+# export GRB_LICENSE_FILE="/absolute/path/to/gurobi.lic"
+
+test -f "$GRB_LICENSE_FILE"
+chmod 600 "$GRB_LICENSE_FILE"
+```
+
+Test the WLS license inside the container:
+
+```bash
+sudo docker run --rm \
+  --mount type=bind,source="$GRB_LICENSE_FILE",target=/opt/gurobi/gurobi.lic,readonly \
+  --env GRB_LICENSE_FILE=/opt/gurobi/gurobi.lic \
+  "$RTSS_IMAGE" \
+  gurobi_cl --license
+```
+
+A successful result reports the license being used and does not display a license error. No additional WLS activation command is required.
+
+Include the same license options in every subsequent `docker run` command that executes an ILP-based experiment:
+
+```bash
+--mount type=bind,source="$GRB_LICENSE_FILE",target=/opt/gurobi/gurobi.lic,readonly \
+--env GRB_LICENSE_FILE=/opt/gurobi/gurobi.lic
+```
 
 ### 1.3 (Option B) Local Installation
 
-#### 1.3.1 Clone Repository
+#### 1.3.1 Clone the Repository
 
-Clone the repository to the path of your choice. All commands listed hereafter assume it is placed directly into your home directory.
+Clone the repository to the directory of your choice. The following commands use `$HOME/Multi-Telescope-Followup-Searching` by default:
 
 ```bash
-cd ~
-git clone https://github.com/Daisy0419/Multi-Telescope-Followup-Searching.git
+export PROJECT_DIR="${PROJECT_DIR:-$HOME/Multi-Telescope-Followup-Searching}"
+
+# To use another location instead:
+# export PROJECT_DIR="/path/to/Multi-Telescope-Followup-Searching"
+
+git clone \
+  https://github.com/Daisy0419/Multi-Telescope-Followup-Searching.git \
+  "$PROJECT_DIR"
+
+cd "$PROJECT_DIR"
 ```
 
 #### 1.3.2 Python Environment Setup
 
 We recommend setting up a [conda](https://docs.conda.io/en/latest/) environment for Python.
 
-If you do not have conda installed locally:
+If conda is not installed locally, download and install Miniconda. The following commands use `$HOME/conda` by default:
 
 ```bash
-cd ~/Multi-Telescope-Followup-Searching
-```
+export PROJECT_DIR="${PROJECT_DIR:-$HOME/Multi-Telescope-Followup-Searching}"
+export CONDA_DIR="${CONDA_DIR:-$HOME/conda}"
 
-Download and install Miniconda (change `~/conda` to your preferred location):
+# To use another installation location:
+# export CONDA_DIR="/path/to/conda"
 
-```bash
-export CONDA_DIR=~/conda
-wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-bash miniconda.sh -b -p "${CONDA_DIR}"
+cd "$PROJECT_DIR"
+wget -q \
+  https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+  -O miniconda.sh
+bash miniconda.sh -b -p "$CONDA_DIR"
 rm miniconda.sh
 ```
 
-Make conda available in your shell:
+Make conda available in the current shell:
 
 ```bash
-. "${CONDA_DIR}/etc/profile.d/conda.sh"
+. "$CONDA_DIR/etc/profile.d/conda.sh"
 conda config --system --set channel_priority flexible
 ```
 
 Once conda is available, create the artifact's Python environment from the provided YAML file:
 
 ```bash
+cd "$PROJECT_DIR"
 conda env create -f environment.yml
 ```
 
@@ -229,44 +295,21 @@ Activate it before running the experiment scripts, paper-figure notebook, or rou
 conda activate rtss26-figures
 ```
 
-The environment installs Python 3.11 together with NumPy, pandas, Matplotlib, Plotly, JupyterLab, the Jupyter execution/export packages, and Pillow. The experiment runner scripts themselves use only the Python standard library, but using this environment provides one consistent setup for all Python components of the artifact.
+The environment installs Python 3.11 together with NumPy, pandas, Matplotlib, Plotly, JupyterLab, the Jupyter execution and export packages, and Pillow. The experiment runner scripts themselves use only the Python standard library, but this environment provides one consistent setup for all Python components of the artifact.
 
-<!-- #### 1.3.3 C++ Environment Setup
-
-##### (1) Gurobi Optimizer (Required)
-
-The Gurobi Optimizer is used to solve our ILP approach to the orienteering problem.
-
-1. Download and extract Gurobi to the directory of your choice. All commands listed hereafter assume it is placed directly in your home directory.
-
-```bash
-cd ~
-wget https://packages.gurobi.com/12.0/gurobi12.0.1_linux64.tar.gz
-tar xvfz gurobi12.0.1_linux64.tar.gz
-```
-
-2. Set the necessary environment variables in your shell (change `~/gurobi1201` to your preferred location).
-
-```bash
-export GUROBI_HOME=~/gurobi1201/linux64
-export PATH="${GUROBI_HOME}/bin:$PATH"
-export LD_LIBRARY_PATH="${GUROBI_HOME}/lib:${LD_LIBRARY_PATH:-}"
-```
-
-**Note:** If you don't have Gurobi license and you do not plan to run experiments involving Gurobi, you still need to install Gurobi in order to compile the project code (due to build-time linking requirements). -->
 #### 1.3.3 C++ Environment Setup
 
 ##### (1) Gurobi Optimizer (Required)
 
 Gurobi Optimizer is used by the ILP-based planning methods. The artifact was developed with Gurobi 12.0.1.
 
-1. Choose any directory in which to install Gurobi by setting `GUROBI_BASE_DIR`. Replace `/path/to/designated/directory` with the desired location.
+1. Choose a directory in which to install Gurobi. The following commands use `$HOME` by default:
 
 ```bash
-# default: 
-GUROBI_BASE_DIR="$Home"
-or
-GUROBI_BASE_DIR="/path/to/designated/directory"
+export GUROBI_BASE_DIR="${GUROBI_BASE_DIR:-$HOME}"
+
+# To use another location instead:
+# export GUROBI_BASE_DIR="/path/to/designated/directory"
 
 mkdir -p "$GUROBI_BASE_DIR"
 cd "$GUROBI_BASE_DIR"
@@ -275,115 +318,67 @@ wget https://packages.gurobi.com/12.0/gurobi12.0.1_linux64.tar.gz
 tar xvfz gurobi12.0.1_linux64.tar.gz
 ```
 
-The extracted installation should be located at:
+The extracted installation is located at:
 
 ```text
 $GUROBI_BASE_DIR/gurobi1201/linux64
 ```
 
-2. Set the Gurobi environment variables. Repeat these commands in each new shell, or add them to the appropriate shell startup file, such as `~/.bashrc`.
+2. Set the Gurobi environment variables:
 
 ```bash
-export GUROBI_BASE_DIR="/path/to/designated/directory"
+export GUROBI_BASE_DIR="${GUROBI_BASE_DIR:-$HOME}"
 export GUROBI_HOME="$GUROBI_BASE_DIR/gurobi1201/linux64"
 export PATH="${GUROBI_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${GUROBI_HOME}/lib:${LD_LIBRARY_PATH:-}"
 ```
 
-Verify the installation:
+Repeat these commands in each new shell or add them to the appropriate shell startup file, such as `~/.bashrc`.
+
+Verify the Gurobi installation:
 
 ```bash
 "$GUROBI_HOME/bin/gurobi_cl" --version
 ```
 
-3. Activate either a **Named-User license** or a **Web License Service (WLS) license**.
+3. Configure and test the WLS license.
 
-###### Option A: Named-User License
-
-A Named-User license is tied to a particular user and machine. For an academic Named-User license, the license retrieval command may need to be run while the machine is connected to the institution's network.
-
-1. Sign in to the [Gurobi User Portal](https://portal.gurobi.com/), open the **Licenses** page, locate the appropriate license, and click its installation icon.
-2. Copy the complete `grbgetkey` command shown by the portal.
-3. Choose a private directory in which to store the generated license file:
+If the license is stored at `$HOME/gurobi.lic`, run:
 
 ```bash
-export GUROBI_LICENSE_DIR="/path/to/private-license-directory"
-
-mkdir -p "$GUROBI_LICENSE_DIR"
-chmod 700 "$GUROBI_LICENSE_DIR"
-```
-
-4. Run the key-retrieval command on the machine where Gurobi will run. Replace the placeholder below with the key code supplied by the portal:
-
-```bash
-"$GUROBI_HOME/bin/grbgetkey" "PASTE-YOUR-KEY-CODE-HERE"
-```
-
-When prompted for a destination directory, enter the value assigned to `GUROBI_LICENSE_DIR`. The command will create:
-
-```text
-$GUROBI_LICENSE_DIR/gurobi.lic
-```
-
-Tell Gurobi where to find the file:
-
-```bash
-export GRB_LICENSE_FILE="$GUROBI_LICENSE_DIR/gurobi.lic"
+export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
 chmod 600 "$GRB_LICENSE_FILE"
-```
-
-An Internet connection is needed while retrieving a Named-User license, but it is generally not required for subsequent local use. See Gurobi's [Named-User license instructions](https://support.gurobi.com/hc/en-us/articles/13206281514641-How-do-I-set-up-a-Named-User-or-Single-Machine-or-Single-Use-or-Unlimited-Use-Unlimited-User-license).
-
-###### Option B: Web License Service (WLS)
-
-WLS is suitable for physical machines, virtual machines, and containers. It requires Internet access when Gurobi starts an environment and requests a license token.
-
-1. Sign in to the [Gurobi Web License Manager](https://license.gurobi.com/).
-2. Open **API Keys**, create an API key for the appropriate license, and download the generated `gurobi.lic` file.
-3. Store the downloaded file in a private directory:
-
-```bash
-export GUROBI_LICENSE_DIR="/path/to/private-license-directory"
-
-mkdir -p "$GUROBI_LICENSE_DIR"
-chmod 700 "$GUROBI_LICENSE_DIR"
-
-install -m 600 \
-  "/path/to/downloaded/gurobi.lic" \
-  "$GUROBI_LICENSE_DIR/gurobi.lic"
-
-export GRB_LICENSE_FILE="$GUROBI_LICENSE_DIR/gurobi.lic"
-```
-
-<!-- The WLS license file contains private credentials, including `WLSACCESSID`, `WLSSECRET`, and `LICENSEID`. Do not commit this file to the artifact repository, include it in a container image, or share it with artifact reviewers. When using Docker, mount the license file into the container as a read-only file and set `GRB_LICENSE_FILE` inside the container.
-
-See Gurobi's [WLS setup instructions](https://support.gurobi.com/hc/en-us/articles/13232844297489-How-do-I-set-up-a-Web-License-Service-WLS-license) for additional information. -->
-
-4. Test the selected license configuration:
-
-```bash
 "$GUROBI_HOME/bin/gurobi_cl" --license
 ```
 
-A successful result reports the license file being used and does not display a license error. If `GRB_LICENSE_FILE` points to a nondefault location, it must reference the complete file path rather than only its containing directory.
+If the license is stored elsewhere, set its complete path instead:
 
-> **Note:** Gurobi must be installed to compile this artifact because its headers and libraries are linked at build time. A valid license is additionally required when running any method that creates a Gurobi environment. The supplied experiment drivers execute the ILP methods, so rerunning the paper experiments requires a working Gurobi license. Each reviewer must provide their own license; no license file or WLS credential is distributed with the artifact.
+```bash
+export GRB_LICENSE_FILE="/absolute/path/to/gurobi.lic"
+chmod 600 "$GRB_LICENSE_FILE"
+"$GUROBI_HOME/bin/gurobi_cl" --license
+```
 
+No separate WLS activation command is required. Gurobi reads the API credentials from `gurobi.lic` and obtains a WLS token when a Gurobi environment is created.
+
+A successful test reports the license being used and does not display a license error. Add the `GRB_LICENSE_FILE` export to your shell startup file if the license is stored outside Gurobi's default locations.
+
+> **Note:** Gurobi must be installed to compile this artifact because its headers and libraries are linked at build time. A valid WLS license is additionally required when running any method that creates a Gurobi environment. The supplied experiment drivers execute the ILP methods, so rerunning the paper experiments requires a working WLS license. Each reviewer must provide their own license; no license file or WLS credential is distributed with the artifact.
 
 ##### (2) LEMON Graph Library (Required)
 
 LEMON provides graph data structures and matching routines used by the retained single-route planning code.
 
-1. Choose any directory in which to install LEMON by setting `LEMON_BASE_DIR`, which is now default to `$Home`. 
-Replace `/path/to/designated/directory` with the desired location if you are not using `$Home`.
+1. Choose a directory in which to install LEMON. The following commands use `$HOME` by default:
 
 ```bash
-LEMON_BASE_DIR="$HOME"
+export LEMON_BASE_DIR="${LEMON_BASE_DIR:-$HOME}"
 
-# uncomment these lines to define your designated path
-# LEMON_BASE_DIR="/path/to/designated/directory"
-# mkdir -p "$LEMON_BASE_DIR"
-# cd "$LEMON_BASE_DIR"
+# To use another location instead:
+# export LEMON_BASE_DIR="/path/to/designated/directory"
+
+mkdir -p "$LEMON_BASE_DIR"
+cd "$LEMON_BASE_DIR"
 
 wget http://lemon.cs.elte.hu/pub/sources/lemon-1.3.1.tar.gz
 tar xvfz lemon-1.3.1.tar.gz
@@ -394,26 +389,26 @@ cmake -S "$LEMON_BASE_DIR/lemon-1.3.1" \
 cmake --build "$LEMON_BASE_DIR/lemon-1.3.1/build" --parallel
 ```
 
-2. Pass these source and build directories when configuring the artifact, as shown in the next section.
+2. Pass the source and build directories when configuring the artifact, as shown in the next section:
 
 ```bash
-cmake .. \
+cmake -S "$PROJECT_DIR" \
+  -B "$PROJECT_DIR/build" \
   -DLEMON_SOURCE_DIR="$LEMON_BASE_DIR/lemon-1.3.1" \
   -DLEMON_BUILD_DIR="$LEMON_BASE_DIR/lemon-1.3.1/build"
 ```
 
 ##### (3) Build the C++ Executables
 
-Once all dependencies are installed, you can build the C++ project with:
+Once all dependencies are installed, build the C++ project with:
 
 ```bash
+export PROJECT_DIR="${PROJECT_DIR:-$HOME/Multi-Telescope-Followup-Searching}"
+export LEMON_BASE_DIR="${LEMON_BASE_DIR:-$HOME}"
 
-PROJECT_DIR="$Home/Multi-Telescope-Followup-Searching"
-LEMON_BASE_DIR="$Home"
-
-# uncomment to set your designated path
-# PROJECT_DIR="/path/to/Multi-Telescope-Followup-Searching"
-# LEMON_BASE_DIR="/path/to/designated/directory"
+# To use other locations instead:
+# export PROJECT_DIR="/path/to/Multi-Telescope-Followup-Searching"
+# export LEMON_BASE_DIR="/path/to/designated/directory"
 
 cmake -S "$PROJECT_DIR" \
   -B "$PROJECT_DIR/build" \
@@ -425,8 +420,8 @@ cmake --build "$PROJECT_DIR/build" --parallel
 
 This produces two binaries in `build/`:
 
-- **`ts_maxp`** - fixed-`K` maximum-detection-probability experiments, built from the shared driver in `src/main.cpp` and `src/main_maxp_entry.cpp`.
-- **`ts_mink`** - minimum-telescope-demand experiments, built from the shared driver in `src/main.cpp` and `src/main_mink_entry.cpp`.
+- **`ts_maxp`** — fixed-`K` maximum-detection-probability experiments, built from the shared driver in `src/main.cpp` and `src/main_maxp_entry.cpp`.
+- **`ts_mink`** — minimum-telescope-demand experiments, built from the shared driver in `src/main.cpp` and `src/main_mink_entry.cpp`.
 
 ---
 
@@ -434,14 +429,22 @@ This produces two binaries in `build/`:
 
 Precomputed results are provided so that an evaluator can reproduce the paper figures without rerunning the long ILP experiments.
 
-### 2.2 Option A: Run JupyterLab in the Docker Container
+The commands below use `$HOME/Multi-Telescope-Followup-Searching` by default. If the repository is stored elsewhere, set `RTSS_REPO` to that location instead:
+
+```bash
+export RTSS_REPO="${RTSS_REPO:-$HOME/Multi-Telescope-Followup-Searching}"
+
+# For another location, use this instead:
+# export RTSS_REPO="/path/to/Multi-Telescope-Followup-Searching"
+```
+
+### 2.1 Option A: Run JupyterLab in the Docker Container
 
 This option uses the Python environment packaged in the artifact container; it does not require a local conda installation or a Gurobi license. It requires the finalized RTSS 2026 image identified in Section 1.2.2.
 
 From the repository root, run:
 
 ```bash
-export RTSS_REPO="${RTSS_REPO:-$HOME/Multi-Telescope-Followup-Searching}"
 export RTSS_IMAGE="<TODO_RTSS26_CONTAINER_IMAGE:TAG>"
 cd "$RTSS_REPO"
 
@@ -456,16 +459,15 @@ sudo docker run --rm -it \
       --allow-root'
 ```
 
-> **TODO:** Replace `<TODO_RTSS26_CONTAINER_IMAGE:TAG>` with the published RTSS 2026 image and tag. Until the image is available, use the local option in Section 2.3.
+> **TODO:** Replace `<TODO_RTSS26_CONTAINER_IMAGE:TAG>` with the published RTSS 2026 image and tag. Until the image is available, use the local option in Section 2.2.
 
 Open <http://127.0.0.1:8888/lab/tree/precompute_results/RTSS2026_Paper_Figures.ipynb> and select **Run > Run All Cells**. The host-side repository is mounted at `/workspace`, so generated figures are retained after the container exits. Stop JupyterLab with `Ctrl-C`; `--rm` then removes the stopped container.
 
-### 2.3 Option B: Run JupyterLab Locally
+### 2.2 Option B: Run JupyterLab Locally
 
 Complete the local installation in Section 1.3, then run JupyterLab from the repository root:
 
 ```bash
-export RTSS_REPO="${RTSS_REPO:-$HOME/Multi-Telescope-Followup-Searching}"
 cd "$RTSS_REPO"
 conda activate rtss26-figures
 jupyter lab precompute_results/RTSS2026_Paper_Figures.ipynb
@@ -481,7 +483,7 @@ jupyter nbconvert --to notebook --execute --inplace \
   precompute_results/RTSS2026_Paper_Figures.ipynb
 ```
 
-### 2.4 Notebook Outputs
+### 2.3 Notebook Outputs
 
 `precompute_results/RTSS2026_Paper_Figures.ipynb` loads the precomputed CSV and map data and generates Figures 2-11 in manuscript order. It does not rerun an optimizer and does not require a Gurobi license. The notebook first reports any missing inputs, then displays each available figure once at high resolution.
 
@@ -502,7 +504,7 @@ fig11_mink_deadline_191113
 
 Each stem is written as both `.pdf` and `.png`. Figure generation is expected to complete in under five minutes on a modern laptop after the environment is active. The required Python and plotting versions are specified in `environment.yml`.
 
-### 2.5 Optional Interactive Route Visualizations
+### 2.4 Optional Interactive Route Visualizations
 
 Figures 4 and 10 are saved as static paper figures by default. To inspect the routes interactively, set `RUN_INTERACTIVE = True` in the notebook's configuration cell, then rerun the Figure 4 and Figure 10 cells. Figure 4 displays one Plotly viewer for each of Greedy+SA, Greedy+ILP, TOP-SA, and TOP-ILP; Figure 10 displays one for each of R-ILP, R-Greedy, and R-SA. The viewers support zooming, panning, rotation, and per-route hover information. No separate figure-specific script is required.
 
@@ -514,14 +516,17 @@ The static outputs are `fig04_maxp_routes_200220.{pdf,png}` and `fig10_mink_rout
 
 Full re-execution is substantially more expensive than plotting the precomputed results and may require approximately 40 hours or more, depending on the platform and how often the ILP baselines reach their limits. A valid Gurobi license is required because the current experiment drivers execute the ILP methods as well as the simulated-annealing and greedy methods.
 
-Section 3.2 provides shorter reviewer configurations. These reduced runs are intended to check the end-to-end execution of the artifact, not to reproduce the paper's numerical results.
+Optional Section 3.4, at the end of this section, provides shorter reviewer configurations. These reduced runs are intended to check the end-to-end execution of the artifact, not to reproduce the paper's numerical results.
 
-The six experiment scripts are stored under `results/`. The repository may be placed in `$Home` by default or your designated directory. Set `RTSS_REPO` to its actual location, then run the scripts from the repository root after activating the Python environment and building `ts_maxp` and `ts_mink`:
+### 3.1 Experiment Script Setup
+
+The six experiment scripts are stored under `results/`. The repository may be placed in `$HOME` by default or your designated directory. Set `RTSS_REPO` to its actual location, then run the scripts from the repository root after activating the Python environment and building `ts_maxp` and `ts_mink`:
 
 ```bash
-export RTSS_REPO="$Home/Multi-Telescope-Followup-Searching"
-#or
-export RTSS_REPO="/path/to/Multi-Telescope-Followup-Searching"
+export RTSS_REPO="${RTSS_REPO:-$HOME/Multi-Telescope-Followup-Searching}"
+
+# For another location, use this instead:
+# export RTSS_REPO="/path/to/Multi-Telescope-Followup-Searching"
 
 cd "$RTSS_REPO"
 conda activate rtss26-figures
@@ -551,7 +556,7 @@ OVERWRITE_RESULTS = True
 
 in that script to replace it.
 
-### 3.1 Common Evaluation Configuration
+### 3.2 Common Evaluation Configuration
 
 The paper uses:
 
@@ -568,13 +573,202 @@ The paper uses:
 - Random initial telescope roots selected from all-sky tile centers, with the same root set reused across algorithms for each graph instance.
 - No GPU.
 
-### 3.2 Reduced or Partial Evaluations (Optiomal)
-> Note: Only run this section when you don't want to run the full experiments as those conducted in the paper. Otherwise, jump to 3.3.
+### 3.3 Run All Experiments
+
+The following subsections describe the complete experiment groups, their output files, the commands that run all groups, and visualization of the generated results.
+
+#### 3.3.1 Fixed-`K` Cross-Instance Experiments (Figures 2-4)
+
+Configuration:
+
+- `K = 4` telescopes.
+- Route deadline `D = 100 s`.
+- Methods: `GREEDY+SA`, `GREEDY+ILP`, `TOP-SA`, and `TOP-ILP`.
+- The single-route ILP calls in `GREEDY+ILP` are limited to one hour each.
+- `TOP-ILP` is limited to one hour per instance.
+
+Run:
+
+```bash
+cd "$RTSS_REPO"
+python3 results/run_maxp_sweep_maps.py
+```
+
+The script pairs all `.txt` files in
+`data/small_maps_6.9x6.9_tiling/` with
+`data/tilings/6.9x6.9_tiling.csv`, and all files in
+`data/large_maps_4.0x2.0_tiling/` with
+`data/tilings/4.0x2.0_tiling.csv`. The `RUN_SMALL_MAPS` and
+`RUN_LARGE_MAPS` switches can enable either subset.
+
+Results are appended by the C++ driver to:
+
+```text
+results/max_probability/maxp_small.csv
+results/max_probability/maxp_large.csv
+```
+
+> Expected full runtime on the reference platform: 30+ hours
+
+#### 3.3.2 Fixed-`K` Deadline Sweeps (Figures 5 and 6)
+
+Configuration:
+
+- `K = 4`.
+- Figure 5 uses
+  `data/large_maps_4.0x2.0_tiling/GW191113_071753_952.txt` with
+  `D in {10, 50, 100, 200, 400, 800} s`.
+- The Figure 5 ILP limits are one hour for
+  `D in {10, 50, 100, 200} s`, two hours for `D = 400 s`, and ten hours
+  for `D = 800 s`.
+- Figure 6 uses
+  `data/very_large_maps_1.34x0.9_tiling/GW200105_162426_11678.txt`
+  with `D in {200, 400, 800, 1600, 3200, 6400} s`.
+- Figure 6 reports only `GREEDY+SA` and `TOP-SA`, because ILP methods are
+  impractical at this scale.
+
+Run:
+
+```bash
+python3 results/run_maxp_sweep_deadlines.py
+```
+
+Use `RUN_LARGE_MAP_SWEEP` and `RUN_VERY_LARGE_MAP_SWEEP` to run one sweep at a time. The current `ts_maxp` driver still launches its ILP routines on the very-large instance, so the script supplies a 36,000-second safety cap for those additional runs. To execute only the two methods reported in Figure 6, disable the ILP calls in `main_maxp` before building, or use a future method-selection driver.
+
+Results are written to:
+
+```text
+results/max_probability/maxp_large_map_budget.csv
+results/max_probability/maxp_very_large_map_budget.csv
+```
+
+> Expected full runtime on the reference platform: 25+ hours
+
+#### 3.3.3 Fixed-`K` Telescope-Count Sweep (Figure 7)
+
+Configuration:
+
+- Instance: large map `191113` with 952 tiles.
+- `D = 100 s`.
+- `K in {1, 2, 4, 8}`.
+- The Gurobi-based methods receive a one-hour limit per configuration.
+
+Run:
+
+```bash
+python3 results/run_maxp_sweep_npaths.py
+```
+
+Results are written to:
+
+```text
+results/max_probability/maxp_large_map_path.csv
+```
+
+Expected full runtime on the reference platform: 30+ hours
+
+#### 3.3.4 Minimum-Demand Cross-Instance Experiments (Figures 8-10)
+
+Configuration:
+
+- Route deadline `D = 100 s`.
+- Methods: `R-GREEDY`, `R-SA`, and `R-ILP`.
+- `R-ILP` is limited to one hour on small instances and two hours on large instances.
+- The candidate-root pool is larger than the number of routes ultimately used, so each method chooses both the roots and the number of routes.
+
+Run:
+
+```bash
+python3 results/run_mink_small.py
+python3 results/run_mink_large.py
+```
+
+The small-map script uses the `6.9x6.9` tiling and a 3,600-second R-ILP limit. The large-map script uses the `4.0x2.0` tiling and a 7,200-second R-ILP limit.
+
+Results are written to:
+
+```text
+results/min_telescope/mink_small.csv
+results/min_telescope/mink_large.csv
+```
+
+> full runtime on the reference platform: 25+ hours
+
+#### 3.3.5 Minimum-Demand Deadline Sweep (Figure 11)
+
+Configuration:
+
+- Instance: large map `191113` with 952 tiles.
+- `D in {50, 100, 200, 400, 800} s`.
+- Methods: `R-GREEDY`, `R-SA`, and `R-ILP`.
+- `R-ILP` is limited to two hours for each deadline.
+
+Run:
+
+```bash
+python3 results/run_mink_sweep_deadlines.py
+```
+
+Results are written to:
+
+```text
+results/min_telescope/mink_large_budget.csv
+```
+
+Expected full runtime on the reference platform: 5+ hours
+
+#### 3.3.6 Run All Experiment Groups
+
+The following commands execute all six groups sequentially:
+
+```bash
+python3 results/run_maxp_sweep_maps.py
+python3 results/run_maxp_sweep_deadlines.py
+python3 results/run_maxp_sweep_npaths.py
+python3 results/run_mink_small.py
+python3 results/run_mink_large.py
+python3 results/run_mink_sweep_deadlines.py
+```
+
+Expected total runtime on the reference platform: **TODO**
+
+#### 3.3.7 Visualize Reviewer-Generated Results
+
+After running any subset of the six experiment scripts, use `results/RTSS2026_Rerun_Results.ipynb` to visualize the newly generated CSV files. This notebook is separate from the precomputed-results notebook and reads exclusively from `results/max_probability/` and `results/min_telescope/`; it never falls back to `precompute_results/`.
+
+For an interactive run from the repository root:
+
+```bash
+conda activate rtss26-figures
+jupyter lab results/RTSS2026_Rerun_Results.ipynb
+```
+
+In JupyterLab, select **Run > Run All Cells**. For a noninteractive run:
+
+```bash
+conda activate rtss26-figures
+jupyter nbconvert --to notebook --execute --inplace \
+  --ExecutePreprocessor.timeout=600 \
+  results/RTSS2026_Rerun_Results.ipynb
+```
+
+The notebook supports partial evaluations. Cross-instance plots contain the available map rows, and sweep plots contain the available deadline or telescope-count values. Figures whose required CSV or representative route instance is missing are reported and skipped without stopping the remaining cells.
+
+Generated PDFs and 300-DPI PNGs are written to:
+
+```text
+results/paper_figures/
+```
+
+
+### 3.4 Optional: Reduced or Partial Evaluations
+
+This subsection is optional. Use it only when you do not want to run the complete paper experiments; otherwise, follow Section 3.3.
 
 All reduction controls are in the configuration blocks near the top of the six scripts. Reduced runs exercise the complete C++/Gurobi workflow but do not reproduce the full paper configuration or necessarily match its numerical results. 
 > Note: With a short time limit, an ILP method may return a weak or no feasible solution or a loose/invalid bound
 
-#### 3.2.1 Maximum-Probability Experiments (`ts_maxp`)
+#### 3.4.1 Maximum-Probability Experiments (`ts_maxp`)
 
 To run only three small maps and three large maps for the fixed-`K` cross-instance experiment, edit `results/run_maxp_sweep_maps.py`:
 
@@ -612,7 +806,7 @@ python3 results/run_maxp_sweep_deadlines.py
 python3 results/run_maxp_sweep_npaths.py
 ```
 
-#### 3.2.2 Minimum-Telescope Experiments (`ts_mink`)
+#### 3.4.2 Minimum-Telescope Experiments (`ts_mink`)
 
 To run only three instances for each map class, edit both `results/run_mink_small.py` and `results/run_mink_large.py`:
 
@@ -640,194 +834,13 @@ python3 results/run_mink_sweep_deadlines.py
 
 The minimum-telescope objective does not take a fixed path-count list: the number of routes is the quantity being minimized and is selected internally by `ts_mink`.
 
-#### 3.2.3 Notes for All Reduced Runs
+#### 3.4.3 Notes for All Reduced Runs
 
 The time-limit value is supplied to the ILP routines within each C++ run; it is not a strict wall-clock limit for the whole Python script. Total time also depends on the number of selected cases and the non-ILP methods.
 
-After editing a script, run it with the same command shown in the relevant full-experiment subsection below. Reduced outputs use the same `results/` filenames as full runs. If such a file already exists, move it aside first or set `OVERWRITE_RESULTS = True`; do not append a reduced run to an existing full-run CSV. The files under `precompute_results/` are never modified by these scripts.
+After editing a script, run it with the same command shown in the relevant subsection of Section 3.3. Reduced outputs use the same `results/` filenames as full runs. If such a file already exists, move it aside first or set `OVERWRITE_RESULTS = True`; do not append a reduced run to an existing full-run CSV. The files under `precompute_results/` are never modified by these scripts.
 
-### 3.3 Fixed-`K` Cross-Instance Experiments (Figures 2-4)
-
-Configuration:
-
-- `K = 4` telescopes.
-- Route deadline `D = 100 s`.
-- Methods: `GREEDY+SA`, `GREEDY+ILP`, `TOP-SA`, and `TOP-ILP`.
-- The single-route ILP calls in `GREEDY+ILP` are limited to one hour each.
-- `TOP-ILP` is limited to one hour per instance.
-
-Run:
-
-```bash
-cd "$PROJECT_DIR"
-python3 results/run_maxp_sweep_maps.py
-```
-
-The script pairs all `.txt` files in
-`data/small_maps_6.9x6.9_tiling/` with
-`data/tilings/6.9x6.9_tiling.csv`, and all files in
-`data/large_maps_4.0x2.0_tiling/` with
-`data/tilings/4.0x2.0_tiling.csv`. The `RUN_SMALL_MAPS` and
-`RUN_LARGE_MAPS` switches can enable either subset.
-
-Results are appended by the C++ driver to:
-
-```text
-results/max_probability/maxp_small.csv
-results/max_probability/maxp_large.csv
-```
-
-> Expected full runtime on the reference platform: 30+ hours
-
-### 3.4 Fixed-`K` Deadline Sweeps (Figures 5 and 6)
-
-Configuration:
-
-- `K = 4`.
-- Figure 5 uses
-  `data/large_maps_4.0x2.0_tiling/GW191113_071753_952.txt` with
-  `D in {10, 50, 100, 200, 400, 800} s`.
-- The Figure 5 ILP limits are one hour for
-  `D in {10, 50, 100, 200} s`, two hours for `D = 400 s`, and ten hours
-  for `D = 800 s`.
-- Figure 6 uses
-  `data/very_large_maps_1.34x0.9_tiling/GW200105_162426_11678.txt`
-  with `D in {200, 400, 800, 1600, 3200, 6400} s`.
-- Figure 6 reports only `GREEDY+SA` and `TOP-SA`, because ILP methods are
-  impractical at this scale.
-
-Run:
-
-```bash
-python3 results/run_maxp_sweep_deadlines.py
-```
-
-Use `RUN_LARGE_MAP_SWEEP` and `RUN_VERY_LARGE_MAP_SWEEP` to run one sweep at a time. The current `ts_maxp` driver still launches its ILP routines on the very-large instance, so the script supplies a 36,000-second safety cap for those additional runs. To execute only the two methods reported in Figure 6, disable the ILP calls in `main_maxp` before building, or use a future method-selection driver.
-
-Results are written to:
-
-```text
-results/max_probability/maxp_large_map_budget.csv
-results/max_probability/maxp_very_large_map_budget.csv
-```
-
-> Expected full runtime on the reference platform: 25+ hours
-
-### 3.5 Fixed-`K` Telescope-Count Sweep (Figure 7)
-
-Configuration:
-
-- Instance: large map `191113` with 952 tiles.
-- `D = 100 s`.
-- `K in {1, 2, 4, 8}`.
-- The Gurobi-based methods receive a one-hour limit per configuration.
-
-Run:
-
-```bash
-python3 results/run_maxp_sweep_npaths.py
-```
-
-Results are written to:
-
-```text
-results/max_probability/maxp_large_map_path.csv
-```
-
-Expected full runtime on the reference platform: 30+ hours
-
-### 3.6 Minimum-Demand Cross-Instance Experiments (Figures 8-10)
-
-Configuration:
-
-- Route deadline `D = 100 s`.
-- Methods: `R-GREEDY`, `R-SA`, and `R-ILP`.
-- `R-ILP` is limited to one hour on small instances and two hours on large instances.
-- The candidate-root pool is larger than the number of routes ultimately used, so each method chooses both the roots and the number of routes.
-
-Run:
-
-```bash
-python3 results/run_mink_small.py
-python3 results/run_mink_large.py
-```
-
-The small-map script uses the `6.9x6.9` tiling and a 3,600-second R-ILP limit. The large-map script uses the `4.0x2.0` tiling and a 7,200-second R-ILP limit.
-
-Results are written to:
-
-```text
-results/min_telescope/mink_small.csv
-results/min_telescope/mink_large.csv
-```
-
-> full runtime on the reference platform: 25+ hours
-
-### 3.7 Minimum-Demand Deadline Sweep (Figure 11)
-
-Configuration:
-
-- Instance: large map `191113` with 952 tiles.
-- `D in {50, 100, 200, 400, 800} s`.
-- Methods: `R-GREEDY`, `R-SA`, and `R-ILP`.
-- `R-ILP` is limited to two hours for each deadline.
-
-Run:
-
-```bash
-python3 results/run_mink_sweep_deadlines.py
-```
-
-Results are written to:
-
-```text
-results/min_telescope/mink_large_budget.csv
-```
-
-Expected full runtime on the reference platform: 5+ hours
-
-### 3.8 Run All Experiments
-
-The following commands execute all six groups sequentially:
-
-```bash
-python3 results/run_maxp_sweep_maps.py
-python3 results/run_maxp_sweep_deadlines.py
-python3 results/run_maxp_sweep_npaths.py
-python3 results/run_mink_small.py
-python3 results/run_mink_large.py
-python3 results/run_mink_sweep_deadlines.py
-```
-
-Expected total runtime on the reference platform: **TODO**
-
-### 3.9 Visualize Reviewer-Generated Results
-
-After running any subset of the six experiment scripts, use `results/RTSS2026_Rerun_Results.ipynb` to visualize the newly generated CSV files. This notebook is separate from the precomputed-results notebook and reads exclusively from `results/max_probability/` and `results/min_telescope/`; it never falls back to `precompute_results/`.
-
-For an interactive run from the repository root:
-
-```bash
-conda activate rtss26-figures
-jupyter lab results/RTSS2026_Rerun_Results.ipynb
-```
-
-In JupyterLab, select **Run > Run All Cells**. For a noninteractive run:
-
-```bash
-conda activate rtss26-figures
-jupyter nbconvert --to notebook --execute --inplace \
-  --ExecutePreprocessor.timeout=600 \
-  results/RTSS2026_Rerun_Results.ipynb
-```
-
-The notebook supports partial evaluations. Cross-instance plots contain the available map rows, and sweep plots contain the available deadline or telescope-count values. Figures whose required CSV or representative route instance is missing are reported and skipped without stopping the remaining cells.
-
-Generated PDFs and 300-DPI PNGs are written to:
-
-```text
-results/paper_figures/
-```
+---
 
 ## 4. Running Individual Cases and Extending the Artifact
 
