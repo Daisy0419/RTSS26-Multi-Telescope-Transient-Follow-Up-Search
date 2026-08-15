@@ -1,0 +1,6 @@
+.vscode
+build*/
+local_backup/
+ILP/
+.DS_Store
+*.log
