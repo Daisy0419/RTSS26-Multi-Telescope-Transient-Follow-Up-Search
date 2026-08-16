@@ -53,8 +53,6 @@ RUN gurobi_archive="gurobi${GUROBI_VERSION}_linux64.tar.gz" && \
     mkdir -p /opt/gurobi && \
     ldconfig
 
-# Do not COPY gurobi.lic into the image. Mount it read-only at runtime.
-
 # -----------------------------------------------------------------------------
 # LEMON 1.3.1
 #
