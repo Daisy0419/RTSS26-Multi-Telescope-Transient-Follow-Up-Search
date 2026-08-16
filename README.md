@@ -2,7 +2,7 @@
 
 This repository contains the source code, datasets, and precomputed results supporting the paper *"Real-Time Multi-Telescope Scheduling to Search for Transient Astrophysical Phenomena."*
 
-- Source repository: [RTSS26-Multi-Telescope-Follow-Up-Searching](https://github.com/Daisy0419/RTSS26-Multi-Telescope-Transient-Follow-Up-Search.git)
+- Source repository: [RTSS26-Multi-Telescope-Transient-Follow-Up-Search](https://github.com/Daisy0419/RTSS26-Multi-Telescope-Transient-Follow-Up-Search.git)
 
 
 ## Artifact Scope
@@ -54,8 +54,8 @@ The artifact is intended to support the following activities:
 - Recommended CPU: 8 or more cores; the paper jobs requested 36 cores.
 - Minimum RAM: 36 GB for setup, plotting, and small smoke tests.
 - Recommended RAM for complete experiments: 64 GB for small instances; the large-instance jobs in the paper requested up to 1.5 TB.
-- Free storage required for a local installation: 10 GB **TODO: confirm the exact needed space**
-- Free storage required for the container installation: 10 GB **TODO: confirm the exact needed space**
+- Free storage required for a local installation: approximately 10 GB.
+- Published container image size: approximately 3.5 GB. Allow at least 5 GB of free storage for the image and Docker's temporary layers; 10 GB is recommended when retaining generated results and figures.
 - GPU: Not required.
 
 For reference, the paper experiments used the following shared Slurm nodes:
@@ -110,6 +110,7 @@ These are the paper's execution platforms, not necessarily minimum artifact requ
 |   |-- main.cpp                       # Shared max-probability/min-demand drivers
 |   |-- main_maxp_entry.cpp            # Entry point for ts_maxp
 |   `-- main_mink_entry.cpp            # Entry point for ts_mink
+|-- Dockerfile                         # Recipe for the published container image
 |-- CMakeLists.txt                     # CMake build configuration
 `-- README.md                          # This file
 ```
@@ -194,11 +195,11 @@ sudo apt-get install \
 #### 1.2.2 Pull the Docker Image
 
 ```bash
-export RTSS_IMAGE="<TODO_RTSS26_CONTAINER_IMAGE:TAG>"
+export RTSS_IMAGE="${RTSS_IMAGE:-ghcr.io/daisy0419/rtss26-multi-telescope:1.0}"
 sudo docker pull "$RTSS_IMAGE"
 ```
 
-All dependencies are preinstalled, and the project binaries are precompiled in the image. You can proceed directly to reproducing the paper figures or rerunning the experiments.
+The published image contains Gurobi 12.0.1, LEMON 1.3.1, the `rtss26-figures` conda environment, and the precompiled `ts_maxp` and `ts_mink` binaries. No GitHub authentication is required to pull the public image. You can proceed directly to reproducing the paper figures or rerunning the experiments.
 
 A Gurobi license is not required when only plotting the supplied precomputed results.
 
@@ -213,6 +214,7 @@ export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
 # export GRB_LICENSE_FILE="/absolute/path/to/gurobi.lic"
 
 test -f "$GRB_LICENSE_FILE"
+export GRB_LICENSE_FILE="$(realpath "$GRB_LICENSE_FILE")"
 chmod 600 "$GRB_LICENSE_FILE"
 ```
 
@@ -239,16 +241,16 @@ Include the same license options in every subsequent `docker run` command that e
 
 #### 1.3.1 Clone the Repository
 
-Clone the repository to the directory of your choice. The following commands use `$HOME/Multi-Telescope-Followup-Searching` by default:
+Clone the repository to the directory of your choice. The following commands use `$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search` by default:
 
 ```bash
-export PROJECT_DIR="${PROJECT_DIR:-$HOME/Multi-Telescope-Followup-Searching}"
+export PROJECT_DIR="${PROJECT_DIR:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search}"
 
 # To use another location instead:
-# export PROJECT_DIR="/path/to/Multi-Telescope-Followup-Searching"
+# export PROJECT_DIR="/path/to/RTSS26-Multi-Telescope-Transient-Follow-Up-Search"
 
 git clone \
-  https://github.com/Daisy0419/Multi-Telescope-Followup-Searching.git \
+  https://github.com/Daisy0419/RTSS26-Multi-Telescope-Transient-Follow-Up-Search.git \
   "$PROJECT_DIR"
 
 cd "$PROJECT_DIR"
@@ -261,7 +263,7 @@ We recommend setting up a [conda](https://docs.conda.io/en/latest/) environment 
 If conda is not installed locally, download and install Miniconda. The following commands use `$HOME/conda` by default:
 
 ```bash
-export PROJECT_DIR="${PROJECT_DIR:-$HOME/Multi-Telescope-Followup-Searching}"
+export PROJECT_DIR="${PROJECT_DIR:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search}"
 export CONDA_DIR="${CONDA_DIR:-$HOME/conda}"
 
 # To use another installation location:
@@ -403,11 +405,11 @@ cmake -S "$PROJECT_DIR" \
 Once all dependencies are installed, build the C++ project with:
 
 ```bash
-export PROJECT_DIR="${PROJECT_DIR:-$HOME/Multi-Telescope-Followup-Searching}"
+export PROJECT_DIR="${PROJECT_DIR:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search}"
 export LEMON_BASE_DIR="${LEMON_BASE_DIR:-$HOME}"
 
 # To use other locations instead:
-# export PROJECT_DIR="/path/to/Multi-Telescope-Followup-Searching"
+# export PROJECT_DIR="/path/to/RTSS26-Multi-Telescope-Transient-Follow-Up-Search"
 # export LEMON_BASE_DIR="/path/to/designated/directory"
 
 cmake -S "$PROJECT_DIR" \
@@ -429,26 +431,28 @@ This produces two binaries in `build/`:
 
 Precomputed results are provided so that an evaluator can reproduce the paper figures without rerunning the long ILP experiments.
 
-The commands below use `$HOME/Multi-Telescope-Followup-Searching` by default. If the repository is stored elsewhere, set `RTSS_REPO` to that location instead:
+The commands below use `$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search` by default. If the repository is stored elsewhere, set `RTSS_REPO` to that location instead:
 
 ```bash
-export RTSS_REPO="${RTSS_REPO:-$HOME/Multi-Telescope-Followup-Searching}"
+export RTSS_REPO="${RTSS_REPO:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search}"
 
 # For another location, use this instead:
-# export RTSS_REPO="/path/to/Multi-Telescope-Followup-Searching"
+# export RTSS_REPO="/path/to/RTSS26-Multi-Telescope-Transient-Follow-Up-Search"
 ```
 
 ### 2.1 Option A: Run JupyterLab in the Docker Container
 
-This option uses the Python environment packaged in the artifact container; it does not require a local conda installation or a Gurobi license. It requires the finalized RTSS 2026 image identified in Section 1.2.2.
+This option uses the Python environment packaged in the published artifact container; it does not require a local conda installation or a Gurobi license.
 
 From the repository root, run:
 
 ```bash
-export RTSS_IMAGE="<TODO_RTSS26_CONTAINER_IMAGE:TAG>"
+export RTSS_IMAGE="${RTSS_IMAGE:-ghcr.io/daisy0419/rtss26-multi-telescope:1.0}"
 cd "$RTSS_REPO"
 
 sudo docker run --rm -it \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
   -p 127.0.0.1:8888:8888 \
   -v "$RTSS_REPO:/workspace" \
   "$RTSS_IMAGE" \
@@ -458,8 +462,6 @@ sudo docker run --rm -it \
       --ServerApp.root_dir=/workspace \
       --allow-root'
 ```
-
-> **TODO:** Replace `<TODO_RTSS26_CONTAINER_IMAGE:TAG>` with the published RTSS 2026 image and tag. Until the image is available, use the local option in Section 2.2.
 
 Open <http://127.0.0.1:8888/lab/tree/precompute_results/RTSS2026_Paper_Figures.ipynb> and select **Run > Run All Cells**. The host-side repository is mounted at `/workspace`, so generated figures are retained after the container exits. Stop JupyterLab with `Ctrl-C`; `--rm` then removes the stopped container.
 
@@ -520,13 +522,42 @@ Optional Section 3.4, at the end of this section, provides shorter reviewer conf
 
 ### 3.1 Experiment Script Setup
 
-The six experiment scripts are stored under `results/`. The repository may be placed in `$HOME` by default or your designated directory. Set `RTSS_REPO` to its actual location, then run the scripts from the repository root after activating the Python environment and building `ts_maxp` and `ts_mink`:
+The six experiment scripts are stored under `results/`. Use either the Docker setup below or the local setup in Section 1.3.
+
+**Docker setup.** The following command mounts the host's `results/` directory into the container so that script edits and generated CSV files persist after the container exits. It also runs the container with the host user's UID and GID so that generated files remain writable by the host user.
 
 ```bash
-export RTSS_REPO="${RTSS_REPO:-$HOME/Multi-Telescope-Followup-Searching}"
+export RTSS_REPO="${RTSS_REPO:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search}"
+export RTSS_IMAGE="${RTSS_IMAGE:-ghcr.io/daisy0419/rtss26-multi-telescope:1.0}"
+export RTSS_CONTAINER_REPO="/opt/RTSS26-Multi-Telescope-Transient-Follow-Up-Search"
+export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
+
+# For another host repository or license location, set RTSS_REPO or
+# GRB_LICENSE_FILE to the corresponding absolute path before continuing.
+test -d "$RTSS_REPO/results"
+test -f "$GRB_LICENSE_FILE"
+export GRB_LICENSE_FILE="$(realpath "$GRB_LICENSE_FILE")"
+
+sudo docker run --rm -it \
+  --user "$(id -u):$(id -g)" \
+  --env HOME=/tmp \
+  --mount type=bind,source="$GRB_LICENSE_FILE",target=/opt/gurobi/gurobi.lic,readonly \
+  --env GRB_LICENSE_FILE=/opt/gurobi/gurobi.lic \
+  --mount type=bind,source="$RTSS_REPO/results",target="$RTSS_CONTAINER_REPO/results" \
+  --workdir "$RTSS_CONTAINER_REPO" \
+  "$RTSS_IMAGE" \
+  bash
+```
+
+Run the commands in Section 3.3 from the resulting container shell. Type `exit` when finished. The image supplies the data, dependencies, and precompiled executables; only `results/` is mounted from the host so that outputs are retained.
+
+**Local setup.** The repository may be placed in `$HOME` by default or another designated directory. Set `RTSS_REPO` to its actual location, then run the scripts from the repository root after activating the Python environment and building `ts_maxp` and `ts_mink`:
+
+```bash
+export RTSS_REPO="${RTSS_REPO:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search}"
 
 # For another location, use this instead:
-# export RTSS_REPO="/path/to/Multi-Telescope-Followup-Searching"
+# export RTSS_REPO="/path/to/RTSS26-Multi-Telescope-Transient-Follow-Up-Search"
 
 cd "$RTSS_REPO"
 conda activate rtss26-figures
@@ -730,7 +761,7 @@ python3 results/run_mink_large.py
 python3 results/run_mink_sweep_deadlines.py
 ```
 
-Expected total runtime on the reference platform: **TODO**
+Expected total runtime on the reference platform: approximately **40 hours or more**, depending on how often the ILP baselines reach their configured time limits.
 
 #### 3.3.7 Visualize Reviewer-Generated Results
 
