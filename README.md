@@ -73,44 +73,37 @@ These are the paper's execution platforms, not necessarily minimum artifact requ
 ```text
 .
 |-- data/                              # Input localization-map and tiling data
-|   |-- generate_sky_tiling/           # Non-overlapping sky-tiling generator
-|   |   |-- M4OPT_tiling.py            # HEALPix footprint utilities
-|   |   |-- main.py                    # Tiling-generation entry point
-|   |   |-- shpere_tiling.py           # Rectangular spherical tiling routines
-|   |   `-- visualize_tiling.py        # Optional tiling visualization
-|   `-- tilings/                       # Tiling CSVs used by the experiments
-|-- environment.yml                   # Python/conda environment
-|-- include/
-|   |-- apps/                          # Application/CLI declarations
+|   |-- generate_sky_tiling/           # Small maps used in the paper
+|   |-- small_maps_6.9x6.9_tiling/     # Large maps used in the paper
+|   |-- large_maps_4.0x2.0_tiling/     # Very large maps used in the paper
+|   |-- very_large_maps_1.34x0.9_tiling/ # Sky-tiling generator
+|   `-- tilings/                       # Tilings used by the experiments
+|-- environment.yml                   # Python environment
+|-- include/                          # Header files for planners
+|   |-- apps/                          # Application
 |   |-- common/                        # Shared data structures and utilities
 |   |-- multi_telescope/               # Multi-telescope algorithms
-|   `-- single_telescope/              # Single-route planners
+|   `-- single_telescope/              # Single-telescope algorithms
 |-- precompute_results/
 |   |-- RTSS2026_Paper_Figures.ipynb    # Figures 2-11 in manuscript order
 |   |-- max_probability/               # Precomputed fixed-K results
-|   |-- min_telescope/                 # Precomputed minimum-demand results
-|   |-- paper_figures/                  # Generated PDF and PNG figures
-|   `-- visualize_path.py              # Optional route visualization utility
-|-- results/                           # Experiment drivers and new outputs
+|   `-- min_telescope/                 # Precomputed minimum-demand results
+|-- results/                           # Experiment scripts and new outputs
 |   |-- RTSS2026_Rerun_Results.ipynb    # Figures from reviewer-generated CSVs
-|   |-- run_maxp_sweep_maps.py         # Figures 2-4 experiment driver
-|   |-- run_maxp_sweep_deadlines.py    # Figures 5-6 experiment driver
-|   |-- run_maxp_sweep_npaths.py       # Figure 7 experiment driver
-|   |-- run_mink_small.py              # Small-map minimum-demand driver
-|   |-- run_mink_large.py              # Large-map minimum-demand driver
-|   |-- run_mink_sweep_deadlines.py    # Figure 11 experiment driver
-|   |-- max_probability/               # Outputs from ts_maxp
-|   |-- min_telescope/                 # Outputs from ts_mink
-|   `-- paper_figures/                  # Figures generated from rerun outputs
+|   |-- run_maxp_sweep_maps.py         # Figures 2-4 experiment script
+|   |-- run_maxp_sweep_deadlines.py    # Figures 5-6 experiment script
+|   |-- run_maxp_sweep_npaths.py       # Figure 7 experiment script
+|   |-- run_mink_small.py              # Small-map minimum-demand script
+|   |-- run_mink_large.py              # Large-map minimum-demand script
+|   `-- run_mink_sweep_deadlines.py    # Figure 11 experiment script
 |-- src/
 |   |-- apps/                          # Application/CLI implementations
 |   |-- common/                        # Shared implementations
 |   |-- multi_telescope/               # Multi-telescope implementations
 |   |-- single_telescope/              # Single-route implementations
-|   |-- main.cpp                       # Shared max-probability/min-demand drivers
+|   |-- main.cpp                       
 |   |-- main_maxp_entry.cpp            # Entry point for ts_maxp
 |   `-- main_mink_entry.cpp            # Entry point for ts_mink
-|-- Dockerfile                         # Recipe for the published container image
 |-- CMakeLists.txt                     # CMake build configuration
 `-- README.md                          # This file
 ```
@@ -131,11 +124,6 @@ Gurobi requires a license file named `gurobi.lic` to run the ILP-based methods.
 
 Academic users can obtain a free Academic WLS license:
 
-- [Free Academic License](https://www.gurobi.com/academia/academic-program-and-licenses/)
-- [Academic WLS License](https://support.gurobi.com/hc/en-us/articles/13210193318033-What-is-an-Academic-WLS-license)
-
-To obtain an Academic WLS license:
-
 1. Navigate to the [Gurobi portal](https://portal.gurobi.com/).
 2. Log in or register using your academic email address.
 3. Navigate to the [academic license request page](https://portal.gurobi.com/iam/licenses/request/?type=academic).
@@ -153,10 +141,6 @@ export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
 
 chmod 600 "$GRB_LICENSE_FILE"
 ```
-
-`GRB_LICENSE_FILE` must identify the license file itself, not only its containing directory.
-
-> **Security note:** A WLS `gurobi.lic` file contains private API credentials. Do not commit it to the repository, include it in the Docker image, or distribute it with the artifact.
 
 ### 1.2 (Option A, Preferred) Using the Provided Docker Container
 
@@ -187,8 +171,7 @@ sudo apt-get update
 2. Install the latest Docker packages:
 
 ```bash
-sudo apt-get install \
-  docker-ce docker-ce-cli containerd.io \
+sudo apt-get install docker-ce docker-ce-cli containerd.io \
   docker-buildx-plugin docker-compose-plugin
 ```
 
@@ -199,11 +182,9 @@ export RTSS_IMAGE="${RTSS_IMAGE:-ghcr.io/daisy0419/rtss26-multi-telescope:1.0}"
 sudo docker pull "$RTSS_IMAGE"
 ```
 
-The published image contains Gurobi 12.0.1, LEMON 1.3.1, the `rtss26-figures` conda environment, and the precompiled `ts_maxp` and `ts_mink` binaries. No GitHub authentication is required to pull the public image. You can proceed directly to reproducing the paper figures or rerunning the experiments.
+> All dependencies are pre-installed, and project binaries are precompiled in the image. You can jump to Section 2 or 3 to visualize the figures or run full experiments uisng container.
 
-A Gurobi license is not required when only plotting the supplied precomputed results.
-
-#### 1.2.3 Provide the WLS License to the Container
+<!-- #### 1.2.3 Provide the WLS License to the Container
 
 The WLS license remains on the host and is mounted read-only into the container. First, identify its location:
 
@@ -235,7 +216,7 @@ Include the same license options in every subsequent `docker run` command that e
 ```bash
 --mount type=bind,source="$GRB_LICENSE_FILE",target=/opt/gurobi/gurobi.lic,readonly \
 --env GRB_LICENSE_FILE=/opt/gurobi/gurobi.lic
-```
+``` -->
 
 ### 1.3 (Option B) Local Installation
 
@@ -365,7 +346,7 @@ No separate WLS activation command is required. Gurobi reads the API credentials
 
 A successful test reports the license being used and does not display a license error. Add the `GRB_LICENSE_FILE` export to your shell startup file if the license is stored outside Gurobi's default locations.
 
-> **Note:** Gurobi must be installed to compile this artifact because its headers and libraries are linked at build time. A valid WLS license is additionally required when running any method that creates a Gurobi environment. The supplied experiment drivers execute the ILP methods, so rerunning the paper experiments requires a working WLS license. Each reviewer must provide their own license; no license file or WLS credential is distributed with the artifact.
+> **Note:** Gurobi must be installed to compile this artifact because its headers and libraries are linked at build time. A valid WLS license is additionally required when running any method that creates a Gurobi environment. The supplied experiment scripts execute the ILP methods, so rerunning the paper experiments requires a working WLS license. Each reviewer must provide their own license; no license file or WLS credential is distributed with the artifact.
 
 ##### (2) LEMON Graph Library (Required)
 
@@ -431,6 +412,30 @@ This produces two binaries in `build/`:
 
 Precomputed results are provided so that an evaluator can reproduce the paper figures without rerunning the long ILP experiments.
 
+
+### 2.1 Option A: Run JupyterLab in the Docker Container
+
+This option uses the Python environment packaged in the published artifact container; it does not require a local conda installation or a Gurobi license.
+
+From the repository root, run:
+
+```bash
+sudo docker run --rm -it -p 127.0.0.1:8888:8888 \
+  -v "$PWD:/workspace" \
+  ghcr.io/daisy0419/rtss26-multi-telescope:1.0 \
+  bash -lc 'conda run --no-capture-output -n rtss26-figures \
+    jupyter lab --ip=0.0.0.0 --port=8888 --no-browser \
+      --IdentityProvider.token="" \
+      --ServerApp.root_dir=/workspace \
+      --allow-root'
+```
+
+Then open http://localhost:8888 and navigate to **precompute_results/RTSS2026_Paper_Figures.ipynb** in the sidebar.
+
+### 2.2 Option B: Run JupyterLab Locally
+
+Complete the local installation in Section 1.3, then run JupyterLab from the repository root.
+
 The commands below use `$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-Search` by default. If the repository is stored elsewhere, set `RTSS_REPO` to that location instead:
 
 ```bash
@@ -440,42 +445,13 @@ export RTSS_REPO="${RTSS_REPO:-$HOME/RTSS26-Multi-Telescope-Transient-Follow-Up-
 # export RTSS_REPO="/path/to/RTSS26-Multi-Telescope-Transient-Follow-Up-Search"
 ```
 
-### 2.1 Option A: Run JupyterLab in the Docker Container
-
-This option uses the Python environment packaged in the published artifact container; it does not require a local conda installation or a Gurobi license.
-
-From the repository root, run:
-
-```bash
-export RTSS_IMAGE="${RTSS_IMAGE:-ghcr.io/daisy0419/rtss26-multi-telescope:1.0}"
-cd "$RTSS_REPO"
-
-sudo docker run --rm -it \
-  --user "$(id -u):$(id -g)" \
-  --env HOME=/tmp \
-  -p 127.0.0.1:8888:8888 \
-  -v "$RTSS_REPO:/workspace" \
-  "$RTSS_IMAGE" \
-  bash -lc 'conda run --no-capture-output -n rtss26-figures \
-    jupyter lab --ip=0.0.0.0 --port=8888 --no-browser \
-      --IdentityProvider.token="" \
-      --ServerApp.root_dir=/workspace \
-      --allow-root'
-```
-
-Open <http://127.0.0.1:8888/lab/tree/precompute_results/RTSS2026_Paper_Figures.ipynb> and select **Run > Run All Cells**. The host-side repository is mounted at `/workspace`, so generated figures are retained after the container exits. Stop JupyterLab with `Ctrl-C`; `--rm` then removes the stopped container.
-
-### 2.2 Option B: Run JupyterLab Locally
-
-Complete the local installation in Section 1.3, then run JupyterLab from the repository root:
-
 ```bash
 cd "$RTSS_REPO"
 conda activate rtss26-figures
 jupyter lab precompute_results/RTSS2026_Paper_Figures.ipynb
 ```
 
-In JupyterLab, select **Run > Run All Cells**. For a noninteractive local run that stores the rendered outputs in the notebook, use:
+<!-- In JupyterLab, select **Run > Run All Cells**. For a noninteractive local run that stores the rendered outputs in the notebook, use:
 
 ```bash
 cd "$RTSS_REPO"
@@ -483,7 +459,7 @@ conda activate rtss26-figures
 jupyter nbconvert --to notebook --execute --inplace \
   --ExecutePreprocessor.timeout=600 \
   precompute_results/RTSS2026_Paper_Figures.ipynb
-```
+``` -->
 
 ### 2.3 Notebook Outputs
 
@@ -516,7 +492,7 @@ The static outputs are `fig04_maxp_routes_200220.{pdf,png}` and `fig10_mink_rout
 
 ## 3. Re-running the Paper Experiments (Long-Running)
 
-Full re-execution is substantially more expensive than plotting the precomputed results and may require approximately 40 hours or more, depending on the platform and how often the ILP baselines reach their limits. A valid Gurobi license is required because the current experiment drivers execute the ILP methods as well as the simulated-annealing and greedy methods.
+Full re-execution is substantially more expensive than plotting the precomputed results and may require approximately 50 hours or more, depending on the platform and how often the ILP baselines reach their limits. A valid Gurobi license is required because the current experiment scripts execute the ILP methods as well as the simulated-annealing and greedy methods.
 
 Optional Section 3.4, at the end of this section, provides shorter reviewer configurations. These reduced runs are intended to check the end-to-end execution of the artifact, not to reproduce the paper's numerical results.
 

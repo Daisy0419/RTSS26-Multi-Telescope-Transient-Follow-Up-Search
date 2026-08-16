@@ -4,5 +4,5 @@ local_backup/
 ILP/
 .DS_Store
 *.log
-Dockerfile
+Dockerfile*
 .dockerignore
