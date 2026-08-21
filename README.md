@@ -163,7 +163,7 @@ Our algorithms include ILP implementations of the orienteering problem, which ar
 Gurobi requires a license file named `gurobi.lic` to run the ILP-based methods.
 
 - Refer to [How to Retrieve and Set Up a Gurobi License](https://support.gurobi.com/hc/en-us/articles/12872879801105).
-- Without a valid license, the `simulated-annealing` and `R-GREEDY` methods can still run. However, the Gurobi headers and libraries are required at build time.
+<!-- - Without a valid license, the `simulated-annealing` and `R-GREEDY` methods can still run. However, the Gurobi headers and libraries are required at build time. -->
 - WLS requires an Internet connection while Gurobi is in use.
 
 Academic users can obtain a free Academic WLS license:
@@ -484,7 +484,7 @@ The viewers support zooming, panning, rotation, and per-route hover information.
 
 ## 3. Re-running the Paper Experiments (Long-Running)
 
-Full re-execution is substantially more expensive than plotting the precomputed results and may require approximately **50 hours or more**, depending on the platform and how often the ILP baselines reach their limits. A valid Gurobi license is required because the current experiment scripts execute the ILP methods as well as the simulated-annealing and greedy methods.
+Full re-execution is substantially more expensive than plotting the precomputed results and may require approximately **100 hours or more**, depending on the platform and how often the ILP baselines reach their limits. A valid Gurobi license is required because the current experiment scripts execute the ILP methods as well as the simulated-annealing and greedy methods.
 
 Optional Section 3.5, at the end of this section, provides shorter reviewer configurations. These reduced runs are intended to check the end-to-end execution of the artifact, not to reproduce the paper's numerical results. Please skip Sections 3.2-3.4 and jump to Section 3.5 (after completing the setup in Section 3.1) if you do not have enough time to run full experiments.
 
@@ -506,7 +506,8 @@ export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
 
 mkdir -p "$RTSS_WORK_DIR"
 
-# Copy the editable experiment directory from the image only once.
+# Copy the editable experiment directory from the image only once!
+# The later bind mount does not need to copy or merge files. The host copy replaces the image's results/ directory while the container is running.
 if [ ! -d "$RTSS_WORK_DIR/results" ]; then
   RTSS_COPY_CONTAINER="$(sudo docker create "$RTSS_IMAGE")"
   sudo docker cp \
@@ -637,24 +638,76 @@ Configuration:
 
 - `K = 4`.
 - Figure 5 uses
-  `data/large_maps_4.0x2.0_tiling/GW191113_071753_952.txt` with
-  `D in {10, 50, 100, 200, 400, 800} s`.
+  `data/large_maps_4.0x2.0_tiling/GW191113_071753_952.txt`
+  with `D in {10, 50, 100, 200, 400, 800} s`.
 - The Figure 5 ILP limits are one hour for
   `D in {10, 50, 100, 200} s`, two hours for `D = 400 s`, and ten hours
   for `D = 800 s`.
 - Figure 6 uses
   `data/very_large_maps_1.34x0.9_tiling/GW200105_162426_11678.txt`
   with `D in {200, 400, 800, 1600, 3200, 6400} s`.
-- Figure 6 reports only `GREEDY+SA` and `TOP-SA`, because ILP methods are
-  impractical at this scale.
+- Figure 6 reports only `GREEDY+SA` and `TOP-SA`; the ILP methods are not part of the reported Figure 6 results.
 
-Run:
+The experiment script is:
+
+```text
+results/run_maxp_sweep_deadlines.py
+```
+
+The default configuration enables both sweeps:
+
+```python
+RUN_LARGE_MAP_SWEEP = True
+RUN_VERY_LARGE_MAP_SWEEP = True
+```
+
+For clarity, we recommend running the two sweeps separately.
+
+To run Figure 5 only, use:
+
+```python
+RUN_LARGE_MAP_SWEEP = True
+RUN_VERY_LARGE_MAP_SWEEP = False
+```
+
+To run Figure 6 only, use:
+
+```python
+RUN_LARGE_MAP_SWEEP = False
+RUN_VERY_LARGE_MAP_SWEEP = True
+
+# Limit the additional, unreported ILP calls.
+VERY_LARGE_EXTRA_ILP_TIME_LIMIT_SECONDS = 10
+
+# Keep this as None so that it does not replace the Figure 5 limits.
+ILP_TIME_LIMIT_OVERRIDE_SECONDS = None
+```
+
+> **Important:** The distributed script sets `VERY_LARGE_EXTRA_ILP_TIME_LIMIT_SECONDS = 36000` by default. Keep this value only if you intentionally want to attempt the additional ILP methods on the very-large instance, which may substantially increase runtime. For reproducing the reported Figure 6 SA results, change it to `10`.
+>
+> Because the current `ts_maxp` executable invokes all methods in one execution, it still enters its ILP routines for Figure 6. The ten-second setting limits each additional Gurobi optimization call; it is not a wall-clock limit for the complete execution. Model construction and solver initialization may take additional time, and a valid Gurobi license is still required.
+>
+> Any time-limited ILP rows produced by this sweep are ignored when generating Figure 6 using provided notebook. The notebook selects only `greedy+annealing` and `top_annealing`.
+
+Local users should edit:
+
+```text
+$RTSS_REPO/results/run_maxp_sweep_deadlines.py
+```
+
+Docker users should edit the persistent host-mounted copy:
+
+```text
+$RTSS_WORK_DIR/results/run_maxp_sweep_deadlines.py
+```
+
+Docker users should always execute the script from inside the container, where the host directory is mounted as `results/`.
+
+Run the selected sweep with:
 
 ```bash
 python3 results/run_maxp_sweep_deadlines.py
 ```
-
-Use `RUN_LARGE_MAP_SWEEP` and `RUN_VERY_LARGE_MAP_SWEEP` to run one sweep at a time. The current `ts_maxp` driver still launches its ILP routines on the very-large instance, so the script supplies a 36,000-second safety cap for those additional runs. To execute only the two methods reported in Figure 6, disable the ILP calls in `main_maxp` before building, or use a future method-selection driver.
 
 Results are written to:
 
@@ -751,7 +804,7 @@ python3 results/run_mink_large.py
 python3 results/run_mink_sweep_deadlines.py
 ```
 
->Expected total runtime on the reference platform: approximately **50 hours or more**, depending on how often the ILP baselines reach their configured time limits.
+>Expected total runtime on the reference platform: approximately **100 hours or more**, depending on how often the ILP baselines reach their configured time limits.
 
 ### 3.4 Visualize Reviewer-Generated Results
 
