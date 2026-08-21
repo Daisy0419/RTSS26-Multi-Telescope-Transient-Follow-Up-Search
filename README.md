@@ -742,7 +742,7 @@ python3 results/run_mink_sweep_deadlines.py
 
 >Expected total runtime on the reference platform: approximately **50 hours or more**, depending on how often the ILP baselines reach their configured time limits.
 
-#### 3.4 Visualize Reviewer-Generated Results
+### 3.4 Visualize Reviewer-Generated Results
 
 After running any subset of the six experiment scripts, use `results/RTSS2026_Rerun_Results.ipynb` to visualize the newly generated CSV files. This notebook is separate from the precomputed-results notebook and reads exclusively from `results/max_probability/` and `results/min_telescope/`.
 
@@ -778,6 +778,9 @@ This subsection is optional. Use it only when you do not want to run the complet
 All reduction controls are in the configuration blocks near the top of the six scripts. Reduced runs exercise the complete C++/Gurobi workflow but do not reproduce the full paper configuration or necessarily match its numerical results. 
 > Note: With a short time limit, an ILP method may return a weak or no feasible solution or a loose/invalid bound
 
+These reduced-run instructions work with both the Docker and local setups. For Docker, edit the scripts in `$RTSS_WORK_DIR/results/` on the host, either before or while the container is running. This directory is mounted as `results/` inside the container, so execute the commands below from the container shell.
+All script changes, generated CSV files, and figures persist on the host after the container exits.
+
 #### 3.5.1 Maximum-Probability Experiments (`ts_maxp`)
 
 To run only three small maps and three large maps for the fixed-`K` cross-instance experiment, edit `results/run_maxp_sweep_maps.py`:
@@ -785,7 +788,7 @@ To run only three small maps and three large maps for the fixed-`K` cross-instan
 ```python
 SMALL_MAP_LIMIT = 3
 LARGE_MAP_LIMIT = 3
-ILP_TIME_LIMIT_SECONDS = 1800   # eg: 10 minutes; use 1800 for 30 minutes
+ILP_TIME_LIMIT_SECONDS = 1800   # 30 minutes; use 600 for 10 minutes
 ```
 
 The script selects the first `N` map filenames in sorted order, making the subset deterministic. Leave either limit as `None` to run every map in that class. `RUN_SMALL_MAPS` and `RUN_LARGE_MAPS` can disable an entire class.
