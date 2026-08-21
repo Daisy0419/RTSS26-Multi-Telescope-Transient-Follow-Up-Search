@@ -475,7 +475,7 @@ The viewers support zooming, panning, rotation, and per-route hover information.
 
 Full re-execution is substantially more expensive than plotting the precomputed results and may require approximately **50 hours or more**, depending on the platform and how often the ILP baselines reach their limits. A valid Gurobi license is required because the current experiment scripts execute the ILP methods as well as the simulated-annealing and greedy methods.
 
-Optional Section 3.5, at the end of this section, provides shorter reviewer configurations. These reduced runs are intended to check the end-to-end execution of the artifact, not to reproduce the paper's numerical results. Please jump to Section 3.5 if you do not have enough time to run full experiments.
+Optional Section 3.5, at the end of this section, provides shorter reviewer configurations. These reduced runs are intended to check the end-to-end execution of the artifact, not to reproduce the paper's numerical results. Please skip Sections 3.2-3.4 and jump to Section 3.5 (after completing the setup in Section 3.1) if you do not have enough time to run full experiments.
 
 ### 3.1 Experiment Script Setup
 
