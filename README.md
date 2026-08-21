@@ -4,6 +4,50 @@ This repository contains the source code, datasets, and precomputed results supp
 
 - Source repository: [RTSS26-Multi-Telescope-Transient-Follow-Up-Search](https://github.com/Daisy0419/RTSS26-Multi-Telescope-Transient-Follow-Up-Search.git)
 
+## Table of Contents
+
+- [Artifact Scope](#artifact-scope)
+  - [Implemented Methods](#implemented-methods)
+  - [Supported Artifact Claims](#supported-artifact-claims)
+- [System Requirements](#system-requirements)
+  - [Software](#software)
+  - [Hardware and Storage](#hardware-and-storage)
+- [Repository Structure](#repository-structure)
+- [1. Environment Setup](#1-environment-setup)
+  - [1.1 Obtaining a Gurobi WLS License](#11-obtaining-a-gurobi-wls-license)
+  - [1.2 (Option A, Preferred) Using the Provided Docker Container](#12-docker-container)
+    - [1.2.1 Install Docker](#121-install-docker)
+    - [1.2.2 Pull the Docker Image](#122-pull-the-docker-image)
+  - [1.3 (Option B) Local Installation](#13-local-installation)
+    - [1.3.1 Clone the Repository](#131-clone-the-repository)
+    - [1.3.2 Python Environment Setup](#132-python-environment-setup)
+    - [1.3.3 C++ Environment Setup](#133-c-environment-setup)
+- [2. Reproducing the Paper Figures from Precomputed Results](#2-reproducing-paper-figures)
+  - [2.1 Option A: Run JupyterLab in the Docker Container](#21-figures-docker)
+  - [2.2 Option B: Run JupyterLab Locally](#22-figures-local)
+  - [2.3 Notebook Outputs](#23-notebook-outputs)
+  - [2.4 Optional Interactive Route Visualizations](#24-interactive-route-visualizations)
+- [3. Re-running the Paper Experiments (Long-Running)](#3-rerunning-paper-experiments)
+  - [3.1 Experiment Script Setup](#31-experiment-script-setup)
+  - [3.2 Common Evaluation Configuration](#32-common-evaluation-configuration)
+  - [3.3 Run All Experiments](#33-run-all-experiments)
+    - [3.3.1 Fixed-`K` Cross-Instance Experiments (Figures 2-4)](#331-fixed-k-cross-instance-experiments-figures-2-4)
+    - [3.3.2 Fixed-`K` Deadline Sweeps (Figures 5 and 6)](#332-fixed-k-deadline-sweeps-figures-5-and-6)
+    - [3.3.3 Fixed-`K` Telescope-Count Sweep (Figure 7)](#333-fixed-k-telescope-count-sweep-figure-7)
+    - [3.3.4 Minimum-Demand Cross-Instance Experiments (Figures 8-10)](#334-minimum-demand-cross-instance-experiments-figures-8-10)
+    - [3.3.5 Minimum-Demand Deadline Sweep (Figure 11)](#335-minimum-demand-deadline-sweep-figure-11)
+    - [3.3.6 Run Script Summary: Run All Experiments](#336-run-script-summary-run-all-experiments)
+  - [3.4 Visualize Reviewer-Generated Results](#34-visualize-reviewer-generated-results)
+  - [3.5 Optional: Reduced or Partial Evaluations](#35-optional-reduced-or-partial-evaluations)
+    - [3.5.1 Maximum-Probability Experiments (`ts_maxp`)](#351-maximum-probability-experiments-ts_maxp)
+    - [3.5.2 Minimum-Telescope Experiments (`ts_mink`)](#352-minimum-telescope-experiments-ts_mink)
+    - [3.5.3 Notes for All Reduced Runs](#353-notes-for-all-reduced-runs)
+- [4. Extending the Artifact](#4-extending-the-artifact)
+  - [4.1 Run a Single Instance](#41-run-a-single-instance)
+  - [4.2 Generate a Different Non-Overlapping Tiling](#42-different-non-overlapping-tiling)
+  - [4.3 Explore Different Slew Parameters and Separation Models](#43-different-slew-parameters)
+  - [4.4 Explore Different Dwell-Time Parameters](#44-different-dwell-time-parameters)
+
 
 ## Artifact Scope
 
@@ -184,39 +228,6 @@ sudo docker pull "$RTSS_IMAGE"
 
 > All dependencies are pre-installed, and project binaries are precompiled in the image. You can jump to Section 2 or 3 to visualize the figures or run full experiments uisng container.
 
-<!-- #### 1.2.3 Provide the WLS License to the Container
-
-The WLS license remains on the host and is mounted read-only into the container. First, identify its location:
-
-```bash
-export GRB_LICENSE_FILE="${GRB_LICENSE_FILE:-$HOME/gurobi.lic}"
-
-# To use another location instead:
-# export GRB_LICENSE_FILE="/absolute/path/to/gurobi.lic"
-
-test -f "$GRB_LICENSE_FILE"
-export GRB_LICENSE_FILE="$(realpath "$GRB_LICENSE_FILE")"
-chmod 600 "$GRB_LICENSE_FILE"
-```
-
-Test the WLS license inside the container:
-
-```bash
-sudo docker run --rm \
-  --mount type=bind,source="$GRB_LICENSE_FILE",target=/opt/gurobi/gurobi.lic,readonly \
-  --env GRB_LICENSE_FILE=/opt/gurobi/gurobi.lic \
-  "$RTSS_IMAGE" \
-  gurobi_cl --license
-```
-
-A successful result reports the license being used and does not display a license error. No additional WLS activation command is required.
-
-Include the same license options in every subsequent `docker run` command that executes an ILP-based experiment:
-
-```bash
---mount type=bind,source="$GRB_LICENSE_FILE",target=/opt/gurobi/gurobi.lic,readonly \
---env GRB_LICENSE_FILE=/opt/gurobi/gurobi.lic
-``` -->
 
 ### 1.3 (Option B) Local Installation
 
