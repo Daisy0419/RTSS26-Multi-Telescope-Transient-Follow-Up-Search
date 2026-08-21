@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Run the minimum-telescope experiment over all small-map instances.
 
-Place this script under ``results/``. Edit only the configuration block below;
-the script intentionally has no argparse/command-line parameter parser.
+Place this script under ``results/``. Edit only the configuration block below for simplicity.
 
 Output:
     results/min_telescope/mink_small.csv

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Run the telescope-count sweep for Figure 7.
 
-Place this script under ``results/``. Edit only the configuration block below;
-the script intentionally has no argparse/command-line parameter parser.
+Place this script under ``results/``. Edit only the configuration block below for simplicity.
 """
 
 from __future__ import annotations

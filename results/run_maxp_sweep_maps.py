@@ -2,7 +2,7 @@
 """Run the fixed-map-set experiment for Figures 2 and 3.
 
 Place this script under ``results/``. Edit only the configuration block below;
-the script intentionally has no argparse/command-line parameter parser.
+the script intentionally has no argparse/command-line parameter parser for simplicity..
 """
 
 from __future__ import annotations

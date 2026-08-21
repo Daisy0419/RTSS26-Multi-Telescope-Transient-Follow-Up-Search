@@ -289,7 +289,6 @@ if __name__ == "__main__":
     write_tile_csv('tiling.csv', disjoint_mapping, tile_indices, tile_coords)
 
     # # visualize tilings
-    # plot_coverage_healpix_with_boundaries_plotly(hpx, tile_to_healpix_map, tile_coords, base_region)
-    # # plot_coverage_with_boundaries_plotly_globe(hpx, tile_to_healpix_map, tile_coords, base_region)
+    plot_coverage_with_boundaries_plotly_globe(hpx, tile_to_healpix_map, tile_coords, base_region)
 
     

@@ -397,8 +397,8 @@ cmake --build "$PROJECT_DIR/build" --parallel
 
 This produces two binaries in `build/`:
 
-- **`ts_maxp`** — fixed-`K` maximum-detection-probability experiments, built from the shared driver in `src/main.cpp` and `src/main_maxp_entry.cpp`.
-- **`ts_mink`** — minimum-telescope-demand experiments, built from the shared driver in `src/main.cpp` and `src/main_mink_entry.cpp`.
+- **`ts_maxp`** — fixed-`K` maximum-detection-probability experiments.
+- **`ts_mink`** — minimum-telescope-demand experiments.
 
 ---
 
@@ -675,7 +675,7 @@ Results are written to:
 results/max_probability/maxp_large_map_path.csv
 ```
 
-Expected full runtime on the reference platform: 30+ hours
+>Expected full runtime on the reference platform: 30+ hours
 
 #### 3.3.4 Minimum-Demand Cross-Instance Experiments (Figures 8-10)
 

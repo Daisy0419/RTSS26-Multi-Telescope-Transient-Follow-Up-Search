@@ -6,3 +6,4 @@ ILP/
 *.log
 Dockerfile*
 .dockerignore
+precompute_results/.ipynb_checkpoints

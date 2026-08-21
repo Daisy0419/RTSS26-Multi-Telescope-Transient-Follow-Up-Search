@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Sweep the deadline for the paper's representative large-map instance.
 
-Place this script under ``results/``. Edit only the configuration block below;
-the script intentionally has no argparse/command-line parameter parser.
+Place this script under ``results/``. Edit only the configuration block below for simplicity.
 
 Output:
     results/min_telescope/mink_large_budget.csv
